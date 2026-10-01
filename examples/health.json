@@ -1,0 +1,17 @@
+{
+  "signal": "health",
+  "serviceId": "coela-control",
+  "observedAtUnixMs": 1785859200000,
+  "validForMs": 15000,
+  "dimensions": {
+    "liveness": "healthy",
+    "readiness": "healthy",
+    "dependency": "unknown",
+    "verification": "verified",
+    "operationResult": "succeeded"
+  },
+  "attributes": [
+    { "key": "environment", "value": "local" },
+    { "key": "dependency_id", "value": "zixcel-topology-api" }
+  ]
+}

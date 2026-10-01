@@ -1,0 +1,25 @@
+[package]
+name = "crowsi-telemetry-contracts"
+version = "0.10.0"
+edition = "2024"
+rust-version = "1.97"
+description = "Transport-neutral telemetry contracts and producer port for Crowsi ecosystems"
+license = "Apache-2.0"
+readme = "README.md"
+publish = ["ecosystem-private"]
+
+[workspace]
+members = ["."]
+resolver = "3"
+
+[dependencies]
+serde = { version = "1.0.228", features = ["derive"] }
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "deny"
+todo = "deny"

@@ -17,3 +17,12 @@ validation.
 The contract intentionally has no batch or timeline type. Batch retry/idempotency requires a
 separate reviewed receipt-retention design. Workspace timeline facts use source references and CAS
 revisions and must not be tunneled through operational telemetry.
+
+## Distribution
+
+Add `crowsi-telemetry-contracts = "0.10.0"` to Cargo dependencies. Rust 1.97 or later is required. The public package contains the schema and producer port, with no private-registry dependency. Implement `TelemetrySink` in an explicitly configured adapter; this crate never chooses a collector.
+
+```sh
+cargo test --locked
+cargo package --locked --registry crates-io
+```

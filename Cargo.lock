@@ -47,8 +47,8 @@ dependencies = [
 [[package]]
 name = "crowsi-telemetry-contracts"
 version = "0.10.0"
-source = "sparse+https://ecosystem-private.invalid/cargo/index/"
-checksum = "9690ba2e4333f2004fc610e1d9ce48700d9662e961bd0d92c0fe8df0999b3e4d"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4fa1558df6214f6b283a1f603276c8faa6ca07392c1f499b867b9081d15cc90f"
 dependencies = [
  "serde",
 ]

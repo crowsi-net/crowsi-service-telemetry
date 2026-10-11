@@ -15,7 +15,10 @@ Package distribution is not activated by this documentation. Use the checked-in 
 
 ## Getting started
 
-Install Rust 1.97 or newer and make the declared dependencies available. Use the configured private registry when a dependency is not distributed publicly. Run from this repository:
+The root service is an unpublished implementation for service operators. Its
+contracts dependency is the official crates.io `crowsi-telemetry-contracts`
+0.10.0 archive; no private registry or sibling source checkout is required.
+Install Rust 1.97 or newer and run from this repository:
 
 ```sh
 cargo test --locked
@@ -44,3 +47,7 @@ must be no more than five minutes ahead of the local runtime clock.
 [Usage guide](docs/getting-started.md)
 
 [Examples](examples) · [Implementation and public interfaces](src) · [Verification cases](tests) · [Contributing](CONTRIBUTING.md) · [Security reporting](SECURITY.md) · [License](LICENSE) · [Attribution notices](NOTICE)
+
+Root-service build, lint and behavioral tests run separately in
+`.github/workflows/service.yml`. The contracts package workflow verifies only
+the independent public contracts archive and does not imply service acceptance.

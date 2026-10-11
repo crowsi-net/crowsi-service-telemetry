@@ -2,20 +2,84 @@ use crowsi_service_telemetry::{
     DiagnosticEventV1, ExpectedRuntime, RuntimeConfig, Signal, TelemetryError, TelemetryRuntime,
     TelemetryStore, contract_check as check_contract, generate_runtime_token,
 };
+use std::collections::BTreeMap;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
+
+struct Options<'a> {
+    values: BTreeMap<&'a str, Vec<&'a str>>,
+}
+
+impl<'a> Options<'a> {
+    fn parse(args: &'a [String], allowed: &[&str]) -> Result<Self, TelemetryError> {
+        let mut values = BTreeMap::<&str, Vec<&str>>::new();
+        let mut pairs = args.chunks_exact(2);
+        for pair in &mut pairs {
+            let name = pair[0].as_str();
+            if !allowed.contains(&name) || pair[1].starts_with("--") {
+                return Err(TelemetryError::InvalidInput(
+                    "invalid CLI option or missing value".into(),
+                ));
+            }
+            let items = values.entry(name).or_default();
+            if name != "--service-db" && !items.is_empty() {
+                return Err(TelemetryError::InvalidInput(
+                    "duplicate singleton CLI option".into(),
+                ));
+            }
+            items.push(pair[1].as_str());
+        }
+        if !pairs.remainder().is_empty() || allowed.iter().any(|name| !values.contains_key(name)) {
+            return Err(TelemetryError::InvalidInput(
+                "missing CLI option or value".into(),
+            ));
+        }
+        Ok(Self { values })
+    }
+
+    fn get(&self, name: &str) -> &str {
+        self.values[name][0]
+    }
+
+    fn bindings(&self) -> Result<Vec<(String, PathBuf)>, TelemetryError> {
+        let mut seen = std::collections::BTreeSet::new();
+        self.values["--service-db"]
+            .iter()
+            .map(|value| {
+                let binding = parse_binding(value)?;
+                if !seen.insert(binding.0.clone()) {
+                    return Err(TelemetryError::InvalidInput(
+                        "duplicate service database binding".into(),
+                    ));
+                }
+                Ok(binding)
+            })
+            .collect()
+    }
+}
 
 pub fn run(args: &[String]) -> Result<(), TelemetryError> {
     let Some(command) = args.first().map(String::as_str) else {
         return usage();
     };
     match command {
-        "initialize" => initialize(&args[1..]),
+        "initialize" => initialize(&Options::parse(
+            &args[1..],
+            &["--service", "--db", "--expected-runtime"],
+        )?),
         "token" => token(&args[1..]),
-        "record" => record(&args[1..]),
-        "project" | "query" => project(&args[1..]),
+        "record" => record(&Options::parse(&args[1..], &["--db", "--input"])?),
+        "project" | "query" => project(&Options::parse(&args[1..], &["--db"])?),
         "contract-check" => contract_check(&args[1..]),
-        "serve" => serve(&args[1..]),
+        "serve" => serve(&Options::parse(
+            &args[1..],
+            &[
+                "--bind",
+                "--read-token-file",
+                "--ingest-token-file",
+                "--service-db",
+            ],
+        )?),
         _ => usage(),
     }
 }
@@ -28,10 +92,10 @@ fn contract_check(args: &[String]) -> Result<(), TelemetryError> {
     Ok(())
 }
 
-fn initialize(args: &[String]) -> Result<(), TelemetryError> {
-    let service = option(args, "--service")?;
-    let db = absolute(option(args, "--db")?)?;
-    let expected_runtime = match option(args, "--expected-runtime")? {
+fn initialize(args: &Options<'_>) -> Result<(), TelemetryError> {
+    let service = args.get("--service");
+    let db = absolute(args.get("--db"))?;
+    let expected_runtime = match args.get("--expected-runtime") {
         "continuous" => ExpectedRuntime::Continuous,
         "on-demand" => ExpectedRuntime::OnDemand,
         "external" => ExpectedRuntime::External,
@@ -50,15 +114,16 @@ fn token(args: &[String]) -> Result<(), TelemetryError> {
     if args.first().map(String::as_str) != Some("generate") {
         return usage();
     }
-    let output = absolute(option(&args[1..], "--output")?)?;
+    let options = Options::parse(&args[1..], &["--output"])?;
+    let output = absolute(options.get("--output"))?;
     generate_runtime_token(&output)?;
     println!("generated {}", output.display());
     Ok(())
 }
 
-fn record(args: &[String]) -> Result<(), TelemetryError> {
-    let db = absolute(option(args, "--db")?)?;
-    let input = absolute(option(args, "--input")?)?;
+fn record(args: &Options<'_>) -> Result<(), TelemetryError> {
+    let db = absolute(args.get("--db"))?;
+    let input = absolute(args.get("--input"))?;
     let bytes = std::fs::read(input)?;
     let value: serde_json::Value = serde_json::from_slice(&bytes)?;
     let signal = if value.get("signal").is_some() {
@@ -71,8 +136,8 @@ fn record(args: &[String]) -> Result<(), TelemetryError> {
     Ok(())
 }
 
-fn project(args: &[String]) -> Result<(), TelemetryError> {
-    let db = absolute(option(args, "--db")?)?;
+fn project(args: &Options<'_>) -> Result<(), TelemetryError> {
+    let db = absolute(args.get("--db"))?;
     println!(
         "{}",
         serde_json::to_string(&TelemetryStore::open(&db)?.projection()?)?
@@ -80,16 +145,14 @@ fn project(args: &[String]) -> Result<(), TelemetryError> {
     Ok(())
 }
 
-fn serve(args: &[String]) -> Result<(), TelemetryError> {
-    let bind = option(args, "--bind")?
+fn serve(args: &Options<'_>) -> Result<(), TelemetryError> {
+    let bind = args
+        .get("--bind")
         .parse::<SocketAddr>()
         .map_err(|_| TelemetryError::InvalidInput("invalid bind address".into()))?;
-    let read_token_file = absolute(option(args, "--read-token-file")?)?;
-    let ingest_token_file = absolute(option(args, "--ingest-token-file")?)?;
-    let bindings = repeated(args, "--service-db")
-        .into_iter()
-        .map(parse_binding)
-        .collect::<Result<Vec<_>, _>>()?;
+    let read_token_file = absolute(args.get("--read-token-file"))?;
+    let ingest_token_file = absolute(args.get("--ingest-token-file"))?;
+    let bindings = args.bindings()?;
     let config = RuntimeConfig {
         bind,
         service_databases: bindings,
@@ -97,20 +160,6 @@ fn serve(args: &[String]) -> Result<(), TelemetryError> {
         ingest_token_file,
     };
     TelemetryRuntime::load(&config)?.serve()
-}
-
-fn option<'a>(args: &'a [String], name: &str) -> Result<&'a str, TelemetryError> {
-    args.windows(2)
-        .find(|pair| pair[0] == name)
-        .map(|pair| pair[1].as_str())
-        .ok_or_else(|| TelemetryError::InvalidInput(format!("missing {name}")))
-}
-
-fn repeated<'a>(args: &'a [String], name: &str) -> Vec<&'a str> {
-    args.windows(2)
-        .filter(|pair| pair[0] == name)
-        .map(|pair| pair[1].as_str())
-        .collect()
 }
 
 fn parse_binding(value: &str) -> Result<(String, PathBuf), TelemetryError> {
@@ -123,9 +172,9 @@ fn parse_binding(value: &str) -> Result<(String, PathBuf), TelemetryError> {
 fn absolute(value: &str) -> Result<PathBuf, TelemetryError> {
     let path = Path::new(value);
     if !path.is_absolute() {
-        return Err(TelemetryError::InvalidPath(format!(
-            "{value} is not absolute"
-        )));
+        return Err(TelemetryError::InvalidPath(
+            "CLI path must be absolute".into(),
+        ));
     }
     Ok(path.into())
 }

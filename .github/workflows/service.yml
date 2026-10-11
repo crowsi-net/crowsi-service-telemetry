@@ -1,0 +1,29 @@
+name: Verify root telemetry service
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  root-service:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CARGO_BUILD_JOBS: '2'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Isolate official registry supply and build output
+        run: |
+          echo "CARGO_HOME=$RUNNER_TEMP/service-cargo-home" >> "$GITHUB_ENV"
+          echo "CARGO_TARGET_DIR=$RUNNER_TEMP/service-target" >> "$GITHUB_ENV"
+      - name: Install the declared Rust toolchain
+        run: rustup toolchain install 1.97 --profile minimal --component rustfmt --component clippy
+      - name: Verify root service formatting, lints and behavior
+        run: |
+          cargo +1.97 fmt --all -- --check
+          cargo +1.97 clippy --locked --all-targets --all-features -- -D warnings
+          cargo +1.97 test --locked --all-features
+          cargo +1.97 build --locked --all-targets --all-features

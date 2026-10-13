@@ -51,3 +51,5 @@ must be no more than five minutes ahead of the local runtime clock.
 Root-service build, lint and behavioral tests run separately in
 `.github/workflows/service.yml`. The contracts package workflow verifies only
 the independent public contracts archive and does not imply service acceptance.
+
+[OSS responsibility and source completion](docs/oss-source-contract.md) defines the supported package boundary and required acceptance. It does not declare unexecuted source, distribution or production checks complete.

@@ -1,0 +1,221 @@
+{
+  "repository": "crowsi-net/crowsi-service-telemetry",
+  "purpose": "Retain service-owned operational signals and publish only an explicitly allowed projection.",
+  "responsibility_boundary": "Own the named security/transport mechanism and its explicit trust boundary. Product account/storage/UI composition belongs to the consumer. Tests must not substitute declarations for enforced authority or live environment acceptance.",
+  "packages": [
+    {
+      "manifest": "Cargo.toml",
+      "package": "crowsi-service-telemetry",
+      "ecosystem": "rust",
+      "description": "Privacy-bounded owner-local telemetry foundation for Crowsi services",
+      "interfaces": {
+        "lib": "src/lib.rs",
+        "features": {},
+        "bins": [],
+        "public_modules": [],
+        "public_reexports": [
+          "crowsi_telemetry_contracts::INGEST_RECEIPT_SCHEMA",
+          "crowsi_telemetry_contracts::{\n    Attribute, EventSeverity, EventSignal, ExpectedRuntime, FreshnessState, HealthDimensions,\n    HealthObservationDimensions, HealthSignal, MetricSignal, OperationState, ServiceState, Signal,\n    TelemetryIngestReceiptV1, TelemetrySink, VerificationState,\n}",
+          "diagnostic::{DIAGNOSTIC_EVENT_SCHEMA, DiagnosticEventV1}",
+          "error::TelemetryError",
+          "interface_contract::{ContractCheckReport, contract_check}",
+          "privacy::{PrivacyReport, sanitize_attributes}",
+          "projection::{EventView, MetricView, ServiceProjection, TelemetryProjection}",
+          "runtime::{RuntimeConfig, TelemetryRuntime}",
+          "store::{RetentionPolicy, TelemetryStore}"
+        ],
+        "implicit_bins": []
+      },
+      "declared_commands": {}
+    },
+    {
+      "manifest": "contracts/Cargo.toml",
+      "package": "crowsi-telemetry-contracts",
+      "ecosystem": "rust",
+      "description": "Transport-neutral telemetry contracts and producer port for Crowsi ecosystems",
+      "interfaces": {
+        "lib": "contracts/src/lib.rs",
+        "features": {},
+        "bins": [],
+        "public_modules": [],
+        "public_reexports": [
+          "port::{\n    DeliveryFailure, DeliveryFailureKind, TelemetryDeliveryFuture, TelemetryIngestReceiptV1,\n    TelemetrySink,\n}",
+          "signal::{\n    Attribute, EventSeverity, EventSignal, ExpectedRuntime, FreshnessState, HealthDimensions,\n    HealthObservationDimensions, HealthSignal, MetricSignal, OperationState, ServiceState, Signal,\n    VerificationState,\n}",
+          "validation::{ContractError, validate_service_id, validate_signal_at}"
+        ],
+        "implicit_bins": []
+      },
+      "declared_commands": {}
+    }
+  ],
+  "schema_definitions": [],
+  "test_sources": [
+    "contracts/src/port.rs",
+    "contracts/tests/contract.rs",
+    "src/attribute_policy.rs",
+    "src/connection_limit.rs",
+    "src/freshness.rs",
+    "src/http.rs",
+    "src/main.rs",
+    "src/privacy.rs",
+    "src/runtime.rs",
+    "src/runtime_server.rs",
+    "src/secure_path.rs",
+    "src/store.rs",
+    "src/store_maintenance.rs",
+    "src/store_maintenance_tests.rs",
+    "src/store_tests.rs",
+    "tests/cli_options_contract.rs",
+    "tests/connection_capacity_contract.rs",
+    "tests/contract_check_cli.rs",
+    "tests/diagnostic_contract.rs",
+    "tests/health_ordering_contract.rs",
+    "tests/http_sse_contract.rs",
+    "tests/retention_revision_contract.rs",
+    "tests/runtime_api_contract.rs",
+    "tests/runtime_contract.rs",
+    "tests/secure_path_contract.rs",
+    "tests/store_contract.rs",
+    "tests/support/mod.rs",
+    "tests/support/telemetry_http.rs",
+    "tests/timestamp_contract.rs"
+  ],
+  "example_sources": [
+    "examples/health.json"
+  ],
+  "workflow_definitions": [
+    {
+      "path": ".github/workflows/cargo-package.yml",
+      "jobs": [
+        {
+          "job": "cargo-package",
+          "condition": null,
+          "runs_on": "ubuntu-24.04",
+          "steps": [
+            {
+              "name": null,
+              "run": null,
+              "uses": "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "condition": null
+            },
+            {
+              "name": "Isolate public registry configuration and build output",
+              "run": "echo \"CARGO_HOME=$RUNNER_TEMP/public-cargo-home\" >> \"$GITHUB_ENV\"\necho \"CARGO_TARGET_DIR=$RUNNER_TEMP/public-cargo-target\" >> \"$GITHUB_ENV\"\n",
+              "uses": null,
+              "condition": null
+            },
+            {
+              "name": "Install the declared Rust toolchain",
+              "run": "rustup toolchain install 1.97 --profile minimal --component rustfmt --component clippy",
+              "uses": null,
+              "condition": null
+            },
+            {
+              "name": "Check formatting and all-feature lints",
+              "run": "cargo +1.97 fmt --all -- --check\ncargo +1.97 clippy --locked --all-targets --all-features -- -D warnings\n",
+              "uses": null,
+              "condition": null
+            },
+            {
+              "name": "Exercise behavioral and documentation tests",
+              "run": "cargo +1.97 test --locked --all-features",
+              "uses": null,
+              "condition": null
+            },
+            {
+              "name": "Generate and build the independent public package",
+              "run": "cargo +1.97 package --locked --registry crates-io",
+              "uses": null,
+              "condition": null
+            },
+            {
+              "name": "Record exact source and package bytes",
+              "run": "mkdir -p \"$GITHUB_WORKSPACE/outgoing\"\ncp \"$CARGO_TARGET_DIR/package/crowsi-telemetry-contracts-0.10.0.crate\" \"$GITHUB_WORKSPACE/outgoing/\"\nprintf '%s\\n' \"$EXPECTED_SHA\" > \"$GITHUB_WORKSPACE/outgoing/source-sha.txt\"\ncd \"$GITHUB_WORKSPACE/outgoing\"\nsha256sum crowsi-telemetry-contracts-0.10.0.crate > SHA256SUMS\n",
+              "uses": null,
+              "condition": null
+            },
+            {
+              "name": null,
+              "run": null,
+              "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+              "condition": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": ".github/workflows/oss-policy.yml",
+      "jobs": [
+        {
+          "job": "repository-policy",
+          "condition": null,
+          "runs_on": "ubuntu-latest",
+          "steps": [
+            {
+              "name": null,
+              "run": null,
+              "uses": "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "condition": null
+            },
+            {
+              "name": "Verify repository policy",
+              "run": "python3 .github/oss-policy-check.py",
+              "uses": null,
+              "condition": null
+            },
+            {
+              "name": "Verify policy regression tests",
+              "run": "cd .github && python3 -m unittest discover -s policy-tests",
+              "uses": null,
+              "condition": null
+            },
+            {
+              "name": "Check policy types",
+              "run": "python3 -m venv \"$RUNNER_TEMP/policy-types\"\n\"$RUNNER_TEMP/policy-types/bin/pip\" install -r .github/policy/requirements.txt\n\"$RUNNER_TEMP/policy-types/bin/mypy\" --strict .github/policy .github/oss-policy-check.py .github/policy-tests\n",
+              "uses": null,
+              "condition": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": ".github/workflows/service.yml",
+      "jobs": [
+        {
+          "job": "root-service",
+          "condition": null,
+          "runs_on": "ubuntu-24.04",
+          "steps": [
+            {
+              "name": null,
+              "run": null,
+              "uses": "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "condition": null
+            },
+            {
+              "name": "Isolate official registry supply and build output",
+              "run": "echo \"CARGO_HOME=$RUNNER_TEMP/service-cargo-home\" >> \"$GITHUB_ENV\"\necho \"CARGO_TARGET_DIR=$RUNNER_TEMP/service-target\" >> \"$GITHUB_ENV\"\n",
+              "uses": null,
+              "condition": null
+            },
+            {
+              "name": "Install the declared Rust toolchain",
+              "run": "rustup toolchain install 1.97 --profile minimal --component rustfmt --component clippy",
+              "uses": null,
+              "condition": null
+            },
+            {
+              "name": "Verify root service formatting, lints and behavior",
+              "run": "cargo +1.97 fmt --all -- --check\ncargo +1.97 clippy --locked --all-targets --all-features -- -D warnings\ncargo +1.97 test --locked --all-features\ncargo +1.97 build --locked --all-targets --all-features\n",
+              "uses": null,
+              "condition": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "evidence_policy": "Declarations and source paths are not proof of an executed acceptance. Exact CI head and result are recorded separately. No live accounts or production acceptance is inferred."
+}

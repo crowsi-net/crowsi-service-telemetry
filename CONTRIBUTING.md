@@ -28,9 +28,9 @@ a merged pull request does not itself promise a release or support commitment.
 ## Standalone verification
 
 Use Rust 1.97 or later and run `cargo test --locked` from this repository.
-Exact dependencies from an installer-managed private registry require an
-authorized immutable registry configuration supplied by the package owner.
-Keep that local configuration and any credentials outside the repository.
-With that configuration, use `cargo test --locked --offline`; test optional
-features separately. Public CI currently checks repository policy, while
-functional registry-dependent tests are verified locally.
+Resolve declared third-party dependencies from public crates.io. Managed source-only
+components use their explicitly fixed public Git revision; do not substitute a
+private registry or adjacent checkout. Run functional tests with the committed
+lock and test optional features separately. An offline run is valid only after
+those official artifacts have been fetched and verified. Repository-policy CI
+alone does not establish functional acceptance or release availability.

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "repository": "crowsi-net/crowsi-service-telemetry",
+  "defaultBranch": "main",
+  "requiredWorkflows": [
+    "cargo-package.yml",
+    "oss-policy.yml",
+    "service.yml"
+  ],
+  "packages": [
+    {
+      "ecosystem": "cargo",
+      "manifest": "contracts/Cargo.toml",
+      "name": "crowsi-telemetry-contracts",
+      "installDirectory": "."
+    }
+  ]
+}

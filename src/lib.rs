@@ -17,6 +17,7 @@ mod runtime_instance;
 mod runtime_server;
 mod secure_path;
 mod store;
+mod store_initialization;
 mod store_maintenance;
 #[cfg(test)]
 mod store_maintenance_tests;

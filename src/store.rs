@@ -2,18 +2,14 @@ use crate::error::Result;
 use crate::projection::{PROJECTION_SCHEMA, TelemetryProjection};
 use crate::secure_path::prepare_database;
 use crate::store_maintenance::apply as apply_retention;
-use crate::store_metadata::{
-    assert_expected_runtime, assert_service, increment_revision, metadata_i64, table_exists,
-};
+use crate::store_metadata::{assert_service, increment_revision, metadata_i64};
 use crate::store_read::{read_events, read_metrics, read_services};
 use crate::store_write::{prune, sanitize_signal, write_event, write_health, write_metric};
 use crate::validation::validate_signal;
-use crate::{ExpectedRuntime, Signal, TelemetryError};
+use crate::{ExpectedRuntime, Signal};
 use rusqlite::Connection;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
-
-const MIGRATION: &str = include_str!("../migrations/0001_initial.sql");
 
 #[derive(Clone, Copy, Debug)]
 pub struct RetentionPolicy {
@@ -56,20 +52,8 @@ impl TelemetryStore {
             runtime_instance_id: crate::runtime_instance::generate()?,
             retention: RetentionPolicy::default(),
         };
-        let connection = store.connect()?;
-        if !table_exists(&connection)? {
-            connection.execute_batch(MIGRATION)?;
-            connection.execute(
-                "INSERT INTO metadata(key,value) VALUES('service_id',?1)",
-                [service_id],
-            )?;
-            connection.execute(
-                "INSERT INTO metadata(key,value) VALUES('expected_runtime',?1)",
-                [serde_json::to_string(&expected_runtime)?],
-            )?;
-        }
-        assert_service(&connection, service_id)?;
-        assert_expected_runtime(&connection, expected_runtime)?;
+        let mut connection = store.connect()?;
+        crate::store_initialization::initialize(&mut connection, service_id, expected_runtime)?;
         Ok(store)
     }
 
@@ -84,12 +68,10 @@ impl TelemetryStore {
             runtime_instance_id: crate::runtime_instance::generate()?,
             retention: RetentionPolicy::default(),
         };
-        let connection = store.connect()?;
-        if !table_exists(&connection)? {
-            return Err(TelemetryError::InvalidInput(
-                "telemetry database is not initialized".into(),
-            ));
-        }
+        let mut connection = store.connect()?;
+        let tx = connection.transaction()?;
+        crate::store_initialization::validate(&tx)?;
+        tx.commit()?;
         Ok(store)
     }
 

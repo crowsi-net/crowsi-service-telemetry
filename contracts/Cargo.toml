@@ -1,4 +1,6 @@
 [package]
+categories = ["network-programming"]
+keywords = ["telemetry", "contracts", "privacy", "observability", "rust"]
 include = ["src/**", "tests/**", "Cargo.toml", "README.md", "LICENSE", "NOTICE"]
 repository = "https://github.com/crowsi-net/crowsi-service-telemetry"
 name = "crowsi-telemetry-contracts"

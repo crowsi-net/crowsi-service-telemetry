@@ -1,6 +1,6 @@
 {
   "signal": "health",
-  "serviceId": "coela-control",
+  "serviceId": "example-console",
   "observedAtUnixMs": 1785859200000,
   "validForMs": 15000,
   "dimensions": {

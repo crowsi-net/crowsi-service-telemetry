@@ -24,14 +24,14 @@ and refuses an existing file or any symbolic-link path component. Runtime tokens
 64 lowercase hexadecimal characters.
 
 ```bash
-cargo run --locked --offline -- initialize --service coela-control \
-  --expected-runtime continuous --db /absolute/state/services/coela-control/telemetry.sqlite3
+cargo run --locked --offline -- initialize --service example-console \
+  --expected-runtime continuous --db /absolute/state/services/example-console/telemetry.sqlite3
 cargo run --locked --offline -- token generate --output /absolute/state/read.token
 cargo run --locked --offline -- token generate --output /absolute/state/ingest.token
 cargo run --locked --offline -- serve --bind 127.0.0.1:4212 \
   --read-token-file /absolute/state/read.token \
   --ingest-token-file /absolute/state/ingest.token \
-  --service-db coela-control=/absolute/state/services/coela-control/telemetry.sqlite3
+  --service-db example-console=/absolute/state/services/example-console/telemetry.sqlite3
 ```
 
 Repeat `--service-db ID=ABSOLUTE_PATH` for every explicitly registered service, up to 512.

@@ -29,11 +29,11 @@ fn dimensions() -> HealthObservationDimensions {
 fn stores_only_the_registered_service_and_sanitized_attributes() {
     let directory = tempfile::tempdir().expect("tempdir");
     let path = directory.path().join("state/telemetry.sqlite3");
-    let store = TelemetryStore::initialize(&path, "coela-control", ExpectedRuntime::Continuous)
+    let store = TelemetryStore::initialize(&path, "example-console", ExpectedRuntime::Continuous)
         .expect("initialize");
     store
         .record(Signal::Health(HealthSignal {
-            service_id: "coela-control".into(),
+            service_id: "example-console".into(),
             observed_at_unix_ms: now_ms(),
             valid_for_ms: 15_000,
             dimensions: dimensions(),

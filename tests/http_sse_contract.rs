@@ -12,7 +12,7 @@ use support::telemetry_http::{
 fn authenticated_ingest_projection_and_sse_are_reactive() {
     let directory = tempfile::tempdir().expect("tempdir");
     let db = directory.path().join("state/telemetry.sqlite3");
-    TelemetryStore::initialize(&db, "coela-control", ExpectedRuntime::Continuous)
+    TelemetryStore::initialize(&db, "example-console", ExpectedRuntime::Continuous)
         .expect("database");
     let read_path = directory.path().join("state/read.token");
     let ingest_path = directory.path().join("state/ingest.token");
@@ -27,7 +27,7 @@ fn authenticated_ingest_projection_and_sse_are_reactive() {
         .args(["--ingest-token-file"])
         .arg(&ingest_path)
         .args(["--service-db"])
-        .arg(format!("coela-control={}", db.display()))
+        .arg(format!("example-console={}", db.display()))
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
@@ -56,7 +56,7 @@ fn authenticated_ingest_projection_and_sse_are_reactive() {
     )
     .expect("time");
     let body = serde_json::json!({
-        "signal":"health", "serviceId":"coela-control", "observedAtUnixMs":now,
+        "signal":"health", "serviceId":"example-console", "observedAtUnixMs":now,
         "validForMs":1000,
         "dimensions":{"liveness":"healthy","readiness":"healthy","dependency":"unknown",
             "verification":"verified","operationResult":"succeeded"}, "attributes":[]

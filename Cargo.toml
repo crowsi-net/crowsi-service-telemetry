@@ -18,7 +18,7 @@ resolver = "3"
 crowsi-telemetry-contracts = "=0.10.0"
 getrandom = "0.4.3"
 nix = { version = "0.31.3", features = ["user"] }
-rusqlite = { version = "0.40.2", features = ["bundled"] }
+rusqlite = { version = "0.41.0", features = ["bundled"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
 thiserror = "2.0.18"
